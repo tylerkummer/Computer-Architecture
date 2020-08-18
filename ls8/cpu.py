@@ -14,8 +14,6 @@ class CPU:
         self.reg = [0] * 8
         # Set PC to 0 as a counter
         self.pc = 0
-        # Set a running to true so it can be set to false when hlt is called
-        self.running = True
 
     def load(self):
         """Load a program into memory."""
@@ -69,16 +67,23 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        while self.running:
-            # Read memory address thats in PC and store in ir
-            ir = self.ram[self.pc]
+        while True:
+            # Read memory address thats in PC and store in IR
+            IR = self.ram_read(self.pc)
             # Ram_Read the bytes PC + 1 and PC + 2
             # Store them in operand_a and operand_b
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
+            # Use an if statement to check for the binary of HLT, LDI and PRN
+            # Then call the functions with the appropriate parameters
+            if IR == 0b00000001:
+                self.hlt()
+            elif IR == 0b10000010:
+                self.ldi(operand_a, operand_b)
+            elif IR == 0b01000111:
+                self.prn(operand_a)
 
     # Accept address to read
-
     def ram_read(self, address):
         # Return the value stored in address
         return self.ram[address]
@@ -90,16 +95,16 @@ class CPU:
 
     # Create an hlt function that will exit the program.
     def hlt(self):
-        self.running = False
         sys.exit()
 
-    # Create an ldi function that assigns the register of our PC + 1 to PC + 2
-    def ldi(self):
-        operand_a = self.ram_read(self.pc + 1)
-        operand_b = self.ram_read(self.pc + 2)
+    # Create an ldi function that assigns the register of operand_a to operand_b
+    def ldi(self, operand_a, operand_b):
         self.reg[operand_a] = operand_b
+        # Update the PC to go to the next instruction in the loop
+        self.pc += 3
 
-    # Create a prn that will print the reg place of PC + 1
-    def prn(self):
-        register = self.ram_read(self.pc + 1)
-        print(self.reg[register])
+    # Create a prn that will print the reg place of operand_a
+    def prn(self, operand_a):
+        print(self.reg[operand_a])
+        # Update the PC to go to the next instruction in the loop
+        self.pc += 2
