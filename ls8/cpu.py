@@ -2,6 +2,14 @@
 
 import sys
 
+HLT = 0b00000001
+LDI = 0b10000010
+PRN = 0b01000111
+MUL = 0b10100010
+PUSH = 0b01000101
+POP = 0b01000110
+SP = 7
+
 
 class CPU:
     """Main CPU class."""
@@ -14,6 +22,16 @@ class CPU:
         self.reg = [0] * 8
         # Set PC to 0 as a counter
         self.pc = 0
+        # Set running to True for the while loop we use
+        self.running = True
+        # Set up branchtable functions
+        self.branchtable = {}
+        self.branchtable[HLT] = self.hlt
+        self.branchtable[LDI] = self.ldi
+        self.branchtable[PRN] = self.prn
+        self.branchtable[MUL] = self.mul
+        self.branchtable[PUSH] = self.push
+        self.branchtable[POP] = self.pop
 
     # Accept address to read
     def ram_read(self, address):
@@ -49,22 +67,6 @@ class CPU:
             print("File Not Found")
             sys.exit()
 
-        # # For now, we've just hardcoded a program:
-
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010,  # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111,  # PRN R0
-        #     0b00000000,
-        #     0b00000001,  # HLT
-        # ]
-
-        # for instruction in program:
-        #     self.ram[address] = instruction
-        #     address += 1
-
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
@@ -96,32 +98,37 @@ class CPU:
 
         print()
 
+    # Functions that take in operand_a and operand_b
+    def hlt(self, operand_a, operand_b):
+        self.running = False
+
+    def ldi(self, operand_a, operand_b):
+        self.reg[operand_a] = operand_b
+        self.pc += 3
+
+    def prn(self, operand_a, operand_b):
+        print(self.reg[operand_a])
+        self.pc += 2
+
+    def mul(self, operand_a, operand_b):
+        self.alu("MUL", operand_a, operand_b)
+        self.pc += 3
+
+    def push(self, operand_a, operand_b):
+        pass
+
+    def pop(self, operand_a, operand_b):
+        pass
+
     def run(self):
         """Run the CPU."""
 
-        running = True
-        HLT = 0b00000001
-        LDI = 0b10000010
-        PRN = 0b01000111
-        MUL = 0b10100010
-
-        while running:
+        while self.running:
             # Read memory address thats in PC and store in IR
-            IR = self.ram[self.pc]
+            ir = self.ram[self.pc]
             # Ram_Read the bytes PC + 1 and PC + 2
             # Store them in operand_a and operand_b
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
-            # Use an if statement to check for the binary of HLT, LDI, PRN, etc
-            # Then call the functions with the appropriate parameters
-            if IR == HLT:
-                running = False
-            elif IR == LDI:
-                self.reg[operand_a] = operand_b
-                self.pc += 3
-            elif IR == PRN:
-                print(self.reg[operand_a])
-                self.pc += 2
-            elif IR == MUL:
-                self.alu("MUL", operand_a, operand_b)
-                self.pc += 3
+            # Set the branch operation and pass operand_a and operand_b
+            self.branchtable[ir](operand_a, operand_b)
