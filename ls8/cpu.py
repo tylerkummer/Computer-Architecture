@@ -47,6 +47,7 @@ class CPU:
                     address += 1
         except:
             print("File Not Found")
+            sys.exit()
 
         # # For now, we've just hardcoded a program:
 
