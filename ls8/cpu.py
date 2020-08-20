@@ -8,7 +8,6 @@ PRN = 0b01000111
 MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
-SP = 7
 
 
 class CPU:
@@ -24,6 +23,10 @@ class CPU:
         self.pc = 0
         # Set running to True for the while loop we use
         self.running = True
+        # Create an sp set to 7
+        self.sp = 7
+        # Create a reg of that sp set to 0xF4
+        self.reg[self.sp] = 0xF4
         # Set up branchtable functions
         self.branchtable = {}
         self.branchtable[HLT] = self.hlt
@@ -115,10 +118,20 @@ class CPU:
         self.pc += 3
 
     def push(self, operand_a, operand_b):
-        pass
+        # Subtract sp by one since we are popping it off
+        self.sp -= 1
+        # Reassign the ram sp to our reg operand_a
+        self.ram[self.sp] = self.reg[operand_a]
+        # Add pc by 2 for the next iteration
+        self.pc += 2
 
     def pop(self, operand_a, operand_b):
-        pass
+        # In reverse this time set our reg operand a to our ram sp
+        self.reg[operand_a] = self.ram[self.sp]
+        # Add pc by 1 since we are adding it on
+        self.sp += 1
+        # Add pc by 2 for the next iteration
+        self.pc += 2
 
     def run(self):
         """Run the CPU."""
