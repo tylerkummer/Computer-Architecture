@@ -11,6 +11,10 @@ PUSH = 0b01000101
 POP = 0b01000110
 CALL = 0b01010000
 RET = 0b00010001
+CMP = 0b10100111
+JMP = 0b01010100
+JEQ = 0b01010101
+JNE = 0b01010110
 
 
 class CPU:
@@ -30,6 +34,8 @@ class CPU:
         self.sp = 7
         # Create a reg of that sp set to 0xF4
         self.reg[self.sp] = 0xF4
+        # Set flag for CMP
+        self.fl = 0b00000000
         # Set up branchtable functions
         self.branchtable = {}
         self.branchtable[HLT] = self.hlt
@@ -41,8 +47,13 @@ class CPU:
         self.branchtable[POP] = self.pop
         self.branchtable[CALL] = self.call
         self.branchtable[RET] = self.ret
+        self.branchtable[CMP] = self.cmp_
+        self.branchtable[JMP] = self.jmp
+        self.branchtable[JEQ] = self.jeq
+        self.branchtable[JNE] = self.jne
 
     # Accept address to read
+
     def ram_read(self, address):
         # Return the value stored in address
         return self.ram[address]
@@ -78,12 +89,26 @@ class CPU:
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        # elif op == "SUB": etc
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "CMP":
+            # Check if reg a and b are equal
+            if self.reg[reg_a] == self.reg[reg_b]:
+                # If they are then set E flag to 1
+                self.fl = 0b00000001
+            # Check if reg a is greater than reg b
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                # If so then set G flag to 1
+                self.fl = 0b00000010
+            # Check if reg a is less than reg b
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                # If so then set L flag to 1
+                self.fl = 0b00000100
+            # If none of them work then just set to 0
+            else:
+                self.fl = 0b00000000
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -127,6 +152,10 @@ class CPU:
         self.alu("MUL", operand_a, operand_b)
         self.pc += 3
 
+    def cmp_(self, operand_a, operand_b):
+        self.alu("CMP", operand_a, operand_b)
+        self.pc += 3
+
     def push(self, operand_a, operand_b):
         # Subtract sp by one since we are popping it off
         self.sp -= 1
@@ -152,6 +181,32 @@ class CPU:
     def ret(self, operand_a, operand_b):
         self.pc = self.ram[self.reg[self.sp]]
         self.reg[self.sp] += 1
+
+    def jmp(self, operand_a, operand_b):
+        # Set pc to the value of the given register (operand_a)
+        self.pc = self.reg[operand_a]
+
+    def jeq(self, operand_a, operand_b):
+        # Use the and operator to check if self.fl is set to True
+        equal = self.fl & 0b00000001
+        # Check if equal is set to 1 or True
+        if equal:
+            # If it is jump to the address in the stored register (operand_a)
+            self.pc = self.reg[operand_a]
+        else:
+            # If not then just cycle through pc
+            self.pc += 2
+
+    def jne(self, operand_a, operand_b):
+       # Use the and operator to check if self.fl is set to False
+        equal = self.fl & 0b00000001
+        # Check if equal is set to 0 or False
+        if not equal:
+            # If it is jump to the address in the stored register (operand_a)
+            self.pc = self.reg[operand_a]
+        else:
+            # If not then just cycle through pc
+            self.pc += 2
 
     def run(self):
         """Run the CPU."""
