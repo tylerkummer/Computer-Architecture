@@ -5,9 +5,12 @@ import sys
 HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
+ADD = 0b10100000
 MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
+CALL = 0b01010000
+RET = 0b00010001
 
 
 class CPU:
@@ -32,9 +35,12 @@ class CPU:
         self.branchtable[HLT] = self.hlt
         self.branchtable[LDI] = self.ldi
         self.branchtable[PRN] = self.prn
+        self.branchtable[ADD] = self.add
         self.branchtable[MUL] = self.mul
         self.branchtable[PUSH] = self.push
         self.branchtable[POP] = self.pop
+        self.branchtable[CALL] = self.call
+        self.branchtable[RET] = self.ret
 
     # Accept address to read
     def ram_read(self, address):
@@ -113,6 +119,10 @@ class CPU:
         print(self.reg[operand_a])
         self.pc += 2
 
+    def add(self, operand_a, operand_b):
+        self.alu("ADD", operand_a, operand_b)
+        self.pc += 3
+
     def mul(self, operand_a, operand_b):
         self.alu("MUL", operand_a, operand_b)
         self.pc += 3
@@ -133,9 +143,18 @@ class CPU:
         # Add pc by 2 for the next iteration
         self.pc += 2
 
+    def call(self, operand_a, operand_b):
+        self.reg[self.sp] -= 1
+        self.ram[self.reg[self.sp]] = self.pc + 2
+        value = self.ram[self.pc + 1]
+        self.pc = self.reg[value]
+
+    def ret(self, operand_a, operand_b):
+        self.pc = self.ram[self.reg[self.sp]]
+        self.reg[self.sp] += 1
+
     def run(self):
         """Run the CPU."""
-
         while self.running:
             # Read memory address thats in PC and store in IR
             ir = self.ram[self.pc]
